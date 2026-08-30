@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -97,4 +99,31 @@ func (cfg *apiConfig) getChirps (w http.ResponseWriter, r *http.Request){
 		})
 	}
 	respondWithJSON(w, 200, chirps)
+}
+
+func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request){
+	defer r.Body.Close()
+	chirpId, err := uuid.Parse(r.PathValue("chirpID"))
+	if err!=nil{
+		log.Printf("Error while converting chirpId to UUID: %s", err)
+		respondWithError(w, 500, "Couldn't convert ChirpId to UUID", err)
+		return
+	}
+	chirp, err := cfg.db.GetChirp(r.Context(),chirpId)
+	  if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            respondWithError(w, 404, "Cannot find the chirp", nil)
+            return
+        }
+
+        respondWithError(w, 500, "Couldn't get chirp", err)
+        return
+    }
+	respondWithJSON(w, 200, Chirp{
+		ID: chirpId,
+		UpdatedAt: chirp.UpdatedAt,
+		CreatedAt: chirp.CreatedAt,
+		Body: chirp.Body,
+		UserID: chirp.UserID,
+	})
 }
