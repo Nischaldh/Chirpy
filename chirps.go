@@ -19,6 +19,23 @@ type Chirp struct {
 	UserID    uuid.UUID `json:"user_id"`
 }
 
+func filterProfanity(body string) (string) {
+	profanityWords := map[string]bool{
+		"kerfuffle": true,
+		"sharbert":  true,
+		"fornax":    true,
+	}
+	words := strings.Fields(body)
+	for i, word := range words {
+		lower := strings.ToLower(word)
+		if profanityWords[lower] {
+			words[i] = "****"
+		}
+	}
+	return strings.Join(words, " ")
+
+
+}
 
 func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 	defer r.Body.Close()
@@ -28,7 +45,7 @@ func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 	}
 	req:= ReqBody{}
 	if err:=json.NewDecoder(r.Body).Decode(&req);err!=nil{
-		log.Printf("Error decoding parameters: %s", nil)
+		log.Printf("Error decoding parameters: %s", err)
 		respondWithError(w, 500, "Something went wrong", err)
 		return
 	}
@@ -61,22 +78,23 @@ func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 	})
 }
 
-
-
-func filterProfanity(body string) (string) {
-	profanityWords := map[string]bool{
-		"kerfuffle": true,
-		"sharbert":  true,
-		"fornax":    true,
+func (cfg *apiConfig) getChirps (w http.ResponseWriter, r *http.Request){
+	defer r.Body.Close()
+	var chirps []Chirp
+	response, err := cfg.db.GetChirps(r.Context())
+	if err!=nil{
+		log.Printf("Error getting chirps: %s", err)
+		respondWithError(w, 500, "Couldn't retrieve chirps", err)
+		return
 	}
-	words := strings.Fields(body)
-	for i, word := range words {
-		lower := strings.ToLower(word)
-		if profanityWords[lower] {
-			words[i] = "****"
-		}
+	for _, res:= range response{
+		chirps = append(chirps, Chirp{
+			ID:res.ID,
+			CreatedAt: res.CreatedAt,
+			UpdatedAt: res.UpdatedAt,
+			Body: res.Body,
+			UserID: res.UserID,
+		})
 	}
-	return strings.Join(words, " ")
-
-
+	respondWithJSON(w, 200, chirps)
 }

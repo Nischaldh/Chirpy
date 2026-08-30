@@ -42,12 +42,24 @@ func main() {
 	}
 	cfg.fileserverHits.Store(0)
 	mux := http.NewServeMux()
+
+	// app endpoints
 	mux.Handle("/app/", cfg.middlewareMetricsInt(http.StripPrefix("/app", http.FileServer(http.Dir("")))))
+
+
+
+	// api endpoints
+
+	//admin endpoints
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("GET /admin/metrics", cfg.numberofRequests)
 	mux.HandleFunc("POST /admin/reset", cfg.resetFileServerHits)
+	//users endpont
 	mux.HandleFunc("POST /api/users", cfg.createUsers)
+
+	//chirps endpoint
 	mux.HandleFunc("POST /api/chirps", cfg.createChirps)
+	mux.HandleFunc("GET /api/chirps", cfg.getChirps)
 
 	ser := &http.Server{
 		Addr:    ":" + port,
