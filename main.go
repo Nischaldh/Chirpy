@@ -56,6 +56,7 @@ func main() {
 	mux.HandleFunc("POST /admin/reset", cfg.resetFileServerHits)
 	//users endpont
 	mux.HandleFunc("POST /api/users", cfg.createUsers)
+	mux.HandleFunc("POST /api/login", cfg.loginUsers)
 
 	//chirps endpoint
 	mux.HandleFunc("POST /api/chirps", cfg.createChirps)

@@ -67,7 +67,7 @@ func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 		UserID: req.USER_ID,
 	})
 	if err!= nil{
-		log.Printf("Error decoding parameters: %s", nil)
+		log.Printf("Error decoding parameters: %s", err)
 		respondWithError(w, 500, "Something went wrong", err)
 		return
 	}
