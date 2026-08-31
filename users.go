@@ -18,6 +18,7 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 	Email     string    `json:"email"`
+	Token     string    `json:"token,omitempty"`
 }
 
 
@@ -67,6 +68,7 @@ func (cfg *apiConfig) loginUsers(w http.ResponseWriter, r *http.Request){
 	type ReqBody struct{
 		Email string `json:"email"`
 		Password string `json:"password"`
+		ExpiresIn int `json:"expires_in_seconds"`
 	}
 	req := ReqBody{}
 
@@ -78,6 +80,9 @@ func (cfg *apiConfig) loginUsers(w http.ResponseWriter, r *http.Request){
 	if req.Email == "" || req.Password == ""{
 		respondWithError(w, http.StatusBadRequest, "Email and Password both are required", nil)
 		return
+	}
+	if req.ExpiresIn == 0 || req.ExpiresIn > 3600{
+		req.ExpiresIn = 3600
 	}
 	u,err := cfg.db.GetUserByEmail(r.Context(),req.Email)
 	if err != nil {
@@ -99,10 +104,18 @@ func (cfg *apiConfig) loginUsers(w http.ResponseWriter, r *http.Request){
 		respondWithError(w, 500, "Something went wrong", err)
 		return
 	}
+	expiresIn := time.Duration(req.ExpiresIn) * time.Second
+	token, err := auth.MakeJWT(u.ID, cfg.jwtSecret, expiresIn)
+	if err != nil {
+		log.Printf("Error decoding paramters: %s", err)
+		respondWithError(w, 500, "Something went wrong", err)
+		return
+	}
 	respondWithJSON(w, 200, User{
 		ID: u.ID,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
 		Email: u.Email,
+		Token: token,
 	})
 }

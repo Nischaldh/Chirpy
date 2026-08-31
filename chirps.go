@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Nischaldh/Chirpy/internal/auth"
 	"github.com/Nischaldh/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -41,9 +42,19 @@ func filterProfanity(body string) (string) {
 
 func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 	defer r.Body.Close()
+	jwt:= r.Header.Get("Authorization")
+	if jwt == ""{
+		respondWithError(w, 401, "Unauthorized", nil)
+		return
+	}
+	userUuid, err := auth.ValidateJWT(strings.TrimPrefix(jwt, "Bearer "), cfg.jwtSecret)
+	if err != nil {
+		log.Printf("Error validating JWT: %v", err)
+		respondWithError(w, 401, "Unauthorized", err)
+		return
+	}
 	type ReqBody struct{
 		BODY string `json:"body"`
-		USER_ID uuid.UUID `json:"user_id"`
 	}
 	req:= ReqBody{}
 	if err:=json.NewDecoder(r.Body).Decode(&req);err!=nil{
@@ -51,7 +62,7 @@ func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 		respondWithError(w, 500, "Something went wrong", err)
 		return
 	}
-	if (req.BODY == "" || req.USER_ID == uuid.Nil){
+	if (req.BODY == ""){
 		respondWithError(w, 400, "Please provide chirps and user_id", nil)
 		return
 	}
@@ -64,7 +75,7 @@ func (cfg *apiConfig) createChirps (w http.ResponseWriter, r *http.Request){
 	
 	chirp, err := cfg.db.CreateChirps(r.Context(), database.CreateChirpsParams{
 		Body: cleanedBody,
-		UserID: req.USER_ID,
+		UserID: userUuid,
 	})
 	if err!= nil{
 		log.Printf("Error decoding parameters: %s", err)
