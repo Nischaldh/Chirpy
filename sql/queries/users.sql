@@ -22,3 +22,9 @@ ON refresh_tokens.user_id = users.id
 WHERE refresh_tokens.token = $1
   AND refresh_tokens.expires_at > NOW()
   AND refresh_tokens.revoked_at IS NULL;
+
+-- name: UpdateUser :one
+UPDATE users
+SET email = $1 , password = $2
+WHERE id = $3
+RETURNING id, created_at, updated_at, email; 

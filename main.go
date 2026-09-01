@@ -63,12 +63,14 @@ func main() {
 
 	//users endpont
 	mux.HandleFunc("POST /api/users", cfg.createUsers)
+	mux.HandleFunc("PUT /api/users", cfg.updateUsers)
 	mux.HandleFunc("POST /api/login", cfg.loginUsers)
 
 	//chirps endpoint
 	mux.HandleFunc("POST /api/chirps", cfg.createChirps)
 	mux.HandleFunc("GET /api/chirps", cfg.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.getChirp)
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.deleteChirp)
 
 	//refresh token endpoint
 	mux.HandleFunc("POST /api/refresh", cfg.refresh)

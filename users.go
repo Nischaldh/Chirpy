@@ -128,3 +128,57 @@ func (cfg *apiConfig) loginUsers(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	})
 }
+
+
+func (cfg *apiConfig) updateUsers(w http.ResponseWriter, r *http.Request){
+	defer r.Body.Close()
+	token, err := auth.GetBearerToken(r.Header)
+	if err!=nil{
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	
+	userUuid , err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		log.Printf("Error validating JWT: %v", err)
+		respondWithError(w, 401, "Unauthorized", err)
+		return
+	}
+	type ReqBody struct{
+		EMAIL string `json:"email"`
+		PASSWORD string `json:"password"`
+	}
+	req := ReqBody{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding parameters: %s", err)
+		respondWithError(w, 500, "Something went wrong", err)
+		return
+	}
+	if req.EMAIL == "" || req.PASSWORD =="" {
+		respondWithError(w, 400, "Please provide email and password", nil)
+		return
+	}
+	hashedPassword, err := auth.HashPassword(req.PASSWORD)
+	if err != nil {
+		log.Printf("Error updating user: %s", err)
+		respondWithError(w, 500, "Error updating the user", err)
+		return
+	}
+	
+	user, err:= cfg.db.UpdateUser(r.Context(), database.UpdateUserParams{
+		Email: req.EMAIL,
+		Password: hashedPassword,
+		ID: userUuid,
+	})
+	if err != nil {
+		log.Printf("Error updating user: %s", err)
+		respondWithError(w, 500, "Error updating the user", err)
+		return
+	}
+	respondWithJSON(w, http.StatusOK,User{
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+	})
+}

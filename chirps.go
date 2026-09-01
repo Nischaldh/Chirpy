@@ -62,7 +62,7 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.BODY == "" {
-		respondWithError(w, 400, "Please provide chirps and user_id", nil)
+		respondWithError(w, 400, "Please provide chirps", nil)
 		return
 	}
 	if len(req.BODY) > 140 {
@@ -136,4 +136,45 @@ func (cfg *apiConfig) getChirp(w http.ResponseWriter, r *http.Request) {
 		Body:      chirp.Body,
 		UserID:    chirp.UserID,
 	})
+}
+
+func (cfg *apiConfig) deleteChirp(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized", nil)
+		return
+	}
+	userUuid, err := auth.ValidateJWT(token, cfg.jwtSecret)
+	if err != nil {
+		log.Printf("Error validating JWT: %v", err)
+		respondWithError(w, 401, "Unauthorized", err)
+		return
+	}
+	chirpId, err := uuid.Parse(r.PathValue("chirpID"))
+	if err != nil {
+		log.Printf("Error while converting chirpId to UUID: %s", err)
+		respondWithError(w, 500, "Couldn't convert ChirpId to UUID", err)
+		return
+	}
+
+	chirp, err := cfg.db.GetChirp(r.Context(), chirpId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondWithError(w, 404, "Cannot find the chirp", nil)
+			return
+		}
+
+		respondWithError(w, 500, "Couldn't get chirp", err)
+		return
+	}
+	if userUuid != chirp.UserID {
+		respondWithError(w, 403, "Unauthorized to delete this chirp", nil)
+		return
+	}
+	if err = cfg.db.DeteleChirp(r.Context(), chirpId); err!=nil{
+		respondWithError(w, 500, "Error while deleting the chirp", err)
+		return
+	}
+	respondWithJSON(w, 204, nil)
 }
