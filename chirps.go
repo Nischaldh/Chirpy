@@ -93,11 +93,30 @@ func (cfg *apiConfig) createChirps(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var chirps []Chirp
-	response, err := cfg.db.GetChirps(r.Context())
-	if err != nil {
-		log.Printf("Error getting chirps: %s", err)
-		respondWithError(w, 500, "Couldn't retrieve chirps", err)
-		return
+	author_id := r.URL.Query().Get("author_id")
+	var response []database.Chirp
+	var err error
+	if author_id == ""{
+		response, err = cfg.db.GetChirps(r.Context())
+		if err != nil {
+			log.Printf("Error getting chirps: %s", err)
+			respondWithError(w, 500, "Couldn't retrieve chirps", err)
+			return
+		}
+	}else{
+		user_id, err := uuid.Parse(author_id)
+		if err!=nil{
+			log.Printf("Error parsing the uuid: %s", err)
+			respondWithError(w, 500, "Couldn't parse the uuid", err)
+			return
+		} 
+		response, err = cfg.db.GetAuthorChirps(r.Context(), user_id)
+		if err != nil {
+			log.Printf("Error getting chirps: %s", err)
+			respondWithError(w, 500, "Couldn't retrieve chirps", err)
+			return
+		}
+	
 	}
 	for _, res := range response {
 		chirps = append(chirps, Chirp{
