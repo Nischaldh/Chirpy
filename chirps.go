@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"sort"
 
 	"github.com/Nischaldh/Chirpy/internal/auth"
 	"github.com/Nischaldh/Chirpy/internal/database"
@@ -94,6 +95,11 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	var chirps []Chirp
 	author_id := r.URL.Query().Get("author_id")
+	s := r.URL.Query().Get("sort")
+	if s != "" && s != "asc" && s != "desc" {
+		respondWithError(w, 400, "Invalid sort parameter. Use 'asc' or 'desc'.", nil)
+		return
+	}
 	var response []database.Chirp
 	var err error
 	if author_id == ""{
@@ -127,6 +133,12 @@ func (cfg *apiConfig) getChirps(w http.ResponseWriter, r *http.Request) {
 			UserID:    res.UserID,
 		})
 	}
+	sort.Slice(chirps, func(i, j int) bool {
+		if s == "asc" {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		}
+		return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+	})
 	respondWithJSON(w, 200, chirps)
 }
 
