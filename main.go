@@ -17,12 +17,14 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	jwtSecret string
+	polkaKey string
 }
 
 func main() {
 	const port = "8080"
 	godotenv.Load()
 	dbURL:= os.Getenv("DB_URL")
+	polkaApiKey := os.Getenv("POLKA_KEY")
 	if dbURL == "" {
 		log.Fatal("DB_URL must be set")
 	}
@@ -45,6 +47,7 @@ func main() {
 		db: dbQueries,
 		platform: platform,
 		jwtSecret: jwtSecret,
+		polkaKey: polkaApiKey,
 	}
 	cfg.fileserverHits.Store(0)
 	mux := http.NewServeMux()
@@ -75,6 +78,9 @@ func main() {
 	//refresh token endpoint
 	mux.HandleFunc("POST /api/refresh", cfg.refresh)
 	mux.HandleFunc("POST /api/revoke", cfg.revoke)
+
+	//webhook
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.updateUserStatus)
 
 	ser := &http.Server{
 		Addr:    ":" + port,

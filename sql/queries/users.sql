@@ -13,6 +13,10 @@ SELECT * FROM users
 WHERE email = $1;
 
 
+-- name: GetUserById :one
+SELECT id, created_at, updated_at, email, is_chirpy_red FROM users
+WHERE id = $1;
+
 
 -- name: GetUserFromRefreshToken :one
 SELECT users.*
@@ -25,6 +29,13 @@ WHERE refresh_tokens.token = $1
 
 -- name: UpdateUser :one
 UPDATE users
-SET email = $1 , password = $2
+SET email = $1 , password = $2 , updated_at = NOW()
 WHERE id = $3
-RETURNING id, created_at, updated_at, email; 
+RETURNING id, created_at, updated_at, email, is_chirpy_red; 
+
+
+-- name: UpdateUserChirpy :one
+UPDATE users
+SET is_chirpy_red = TRUE, updated_at = NOW()
+WHERE id = $1
+RETURNING id, created_at, updated_at, email, is_chirpy_red;
