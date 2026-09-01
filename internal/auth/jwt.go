@@ -56,13 +56,13 @@ func ValidateJWT(tokenString, tokenSecret string) (uuid.UUID, error){
 		return uuid.Nil, err
 	}
 	issuer, err := claims.GetIssuer()
+	if err != nil {
+		return uuid.Nil, err
+	}
 	if issuer != string(TokenTypeAccess) {
 		return uuid.Nil, fmt.Errorf("invalid issuer")
 	}
 
-	if err != nil {
-		return uuid.Nil, err
-	}
 
 	return userID, nil
 

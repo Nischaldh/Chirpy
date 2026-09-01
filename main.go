@@ -60,6 +60,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", handlerReadiness)
 	mux.HandleFunc("GET /admin/metrics", cfg.numberofRequests)
 	mux.HandleFunc("POST /admin/reset", cfg.resetFileServerHits)
+
 	//users endpont
 	mux.HandleFunc("POST /api/users", cfg.createUsers)
 	mux.HandleFunc("POST /api/login", cfg.loginUsers)
@@ -68,6 +69,10 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", cfg.createChirps)
 	mux.HandleFunc("GET /api/chirps", cfg.getChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", cfg.getChirp)
+
+	//refresh token endpoint
+	mux.HandleFunc("POST /api/refresh", cfg.refresh)
+	mux.HandleFunc("POST /api/revoke", cfg.revoke)
 
 	ser := &http.Server{
 		Addr:    ":" + port,
